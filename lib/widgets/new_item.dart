@@ -30,31 +30,55 @@ class _NewItemState extends State<NewItem> {
         'flutter-shopping-list-ap-4e107-default-rtdb.europe-west1.firebasedatabase.app',
         'shopping-list.json',
       );
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'name': _enteredName,
-          'quantity': _enteredQuantity,
-          'category': _selectedCategory.title,
-        }),
-      );
+      try {
+        final response = await http.post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: json.encode({
+            'name': _enteredName,
+            'quantity': _enteredQuantity,
+            'category': _selectedCategory.title,
+          }),
+        );
 
-      final Map<String, dynamic> resData = json.decode(response.body);
+        final Map<String, dynamic> resData = json.decode(response.body);
 
-      if (!context.mounted) {
-        return;
+        if (!context.mounted) {
+          return;
+        }
+        Navigator.of(context).pop(
+          GroceryItem(
+            id: resData['name'],
+            name: _enteredName,
+            quantity: _enteredQuantity,
+            category: _selectedCategory,
+          ),
+        );
+      } catch (error) {
+        if (!context.mounted) {
+          return;
+        }
+        setState(() {
+          _isSending = false;
+        });
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('An error occurred!'),
+            content: const Text('Something went wrong.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+                child: const Text('Okay'),
+              ),
+            ],
+          ),
+        );
       }
-      Navigator.of(context).pop(
-        GroceryItem(
-          id: resData['name'],
-          name: _enteredName,
-          quantity: _enteredQuantity,
-          category: _selectedCategory,
-        ),
-      );
     }
   }
 

@@ -31,33 +31,48 @@ class _GroceryListState extends State<GroceryList> {
       'flutter-shopping-list-ap-4e107-default-rtdb.europe-west1.firebasedatabase.app',
       'shopping-list.json',
     );
-    final response = await http.get(url);
-    if (response.statusCode >= 400) {
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode >= 400) {
+        setState(() {
+          _error = 'Failed to load items, try again later.';
+          _isLoading = false;
+        });
+        return;
+      }
+      if (response.body == 'null') {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      final Map<String, dynamic> listData = json.decode(response.body);
+      final List<GroceryItem> loadedItems = [];
+      for (final item in listData.entries) {
+        final category = categories.values.firstWhere(
+          (element) => element.title == item.value['category'],
+        );
+        loadedItems.add(
+          GroceryItem(
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: category,
+          ),
+        );
+      }
+      setState(() {
+        _groceryItems = loadedItems;
+        _isLoading = false;
+      });
+    } catch (error) {
       setState(() {
         _error = 'Failed to load items, try again later.';
         _isLoading = false;
       });
       return;
     }
-    final Map<String, dynamic> listData = json.decode(response.body);
-    final List<GroceryItem> loadedItems = [];
-    for (final item in listData.entries) {
-      final category = categories.values.firstWhere(
-        (element) => element.title == item.value['category'],
-      );
-      loadedItems.add(
-        GroceryItem(
-          id: item.key,
-          name: item.value['name'],
-          quantity: item.value['quantity'],
-          category: category,
-        ),
-      );
-    }
-    setState(() {
-      _groceryItems = loadedItems;
-      _isLoading = false;
-    });
   }
 
   void _addItem(BuildContext context) async {
@@ -86,9 +101,9 @@ class _GroceryListState extends State<GroceryList> {
     setState(() {
       _groceryItems.remove(item);
     });
-
-    final response = await http.delete(url);
-    if (response.statusCode >= 400) {
+    try {
+      await http.delete(url);
+    } catch (error) {
       setState(() {
         _groceryItems.insert(index, item);
       });
